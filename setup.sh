@@ -145,6 +145,8 @@ for mod in "${MODULES[@]}"; do
   if [[ -d "${dest}/.git" ]]; then
     log "  ${mod}: already cloned, pulling latest"
     as_user "git -C '${dest}' pull --ff-only" || warn "  ${mod}: pull failed, using existing checkout"
+  elif [[ -d "${dest}" ]] && [[ -n "$(ls -A "${dest}" 2>/dev/null)" ]]; then
+    warn "  ${mod}: ${dest} already exists and is not a git checkout — using it as-is (skipping clone)"
   else
     log "  ${mod}: git clone ${repo_url}"
     as_user "git clone '${repo_url}' '${dest}'" \
