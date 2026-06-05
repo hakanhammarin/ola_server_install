@@ -89,7 +89,23 @@ fi
 # ---------------------------------------------------------------------------
 log "Updating apt and installing extra tools"
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
+
+# Disable any CD-ROM apt source — on a server with no install media mounted it
+# fails with "no longer has a Release file" and breaks apt-get update.
+log "Disabling CD-ROM apt sources (if any)"
+sed -i -E '/^[^#].*cdrom:/ s/^/# /' /etc/apt/sources.list 2>/dev/null || true
+for f in /etc/apt/sources.list.d/*.list; do
+  [[ -e "${f}" ]] || continue
+  sed -i -E '/^[^#].*cdrom:/ s/^/# /' "${f}" 2>/dev/null || true
+done
+for f in /etc/apt/sources.list.d/*.sources; do
+  [[ -e "${f}" ]] || continue
+  if grep -qiE 'file:/+cdrom|cdrom:' "${f}"; then
+    mv "${f}" "${f}.disabled" && warn "Disabled CD-ROM source: ${f}"
+  fi
+done
+
+apt-get update -y || warn "apt-get update reported errors (continuing)"
 apt-get install -y nano fio nginx smartmontools htop git python3 wget ca-certificates
 ok "Base tools installed"
 
